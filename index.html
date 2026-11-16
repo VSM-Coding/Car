@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Гараж — Бортовой журнал</title>
+  <meta name="theme-color" content="#121417" />
+  <style>
+    :root {
+      --bg: #121417;
+      --card: #1c2026;
+      --card-hover: #242931;
+      --border: #2c323b;
+      --text: #f0f3f6;
+      --muted: #8b949e;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59, 130, 246, 0.15);
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 84px;
+      line-height: 1.45;
+    }
+
+    .container { max-width: 640px; margin: 0 auto; padding: 16px; }
+
+    /* Empty / Setup State */
+    .empty-screen {
+      min-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      gap: 16px;
+    }
+    .empty-icon { font-size: 52px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 13px 18px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+    }
+    .btn-secondary { background: var(--card); border: 1px solid var(--border); color: var(--text); }
+    .btn-danger { background: rgba(239, 68, 68, 0.15); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.3); }
+    .btn-sm { padding: 8px 12px; font-size: 13px; width: auto; border-radius: 9px; }
+
+    /* Header & Odometer */
+    .car-header {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .car-title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .car-title { font-size: 20px; font-weight: 700; margin: 0; }
+    .car-sub { color: var(--muted); font-size: 13px; margin-top: 3px; }
+    .odometer-box {
+      margin-top: 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .odometer-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .odometer-value { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--accent); }
+
+    /* Specs Pills */
+    .specs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .spec-item {
+      background: rgba(255,255,255,0.03);
+      padding: 8px 10px;
+      border-radius: 9px;
+      font-size: 12px;
+    }
+    .spec-item span { display: block; color: var(--muted); font-size: 11px; }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .card-title { font-weight: 600; font-size: 15px; margin: 0; }
+    .card-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      white-space: nowrap;
+    }
+    .badge.ok { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge.warn { background: rgba(234,179,8,0.15); color: var(--yellow); }
+    .badge.danger { background: rgba(239,68,68,0.15); color: var(--red); }
+
+    /* Progress Bar */
+    .progress-wrap {
+      height: 6px;
+      background: var(--bg);
+      border-radius: 99px;
+      overflow: hidden;
+      margin: 10px 0 6px;
+    }
+    .progress-bar { height: 100%; border-radius: 99px; transition: width 0.3s; }
+
+    /* Shopping Checkbox */
+    .shop-row { display: flex; align-items: flex-start; gap: 12px; }
+    .shop-check {
+      width: 22px; height: 22px; margin-top: 2px;
+      accent-color: var(--green); cursor: pointer; flex-shrink: 0;
+    }
+    .bought .card-title { text-decoration: line-through; color: var(--muted); }
+
+    /* Notes */
+    .note-text {
+      white-space: pre-line;
+      font-size: 13.5px;
+      color: #d0d7de;
+      margin-top: 8px;
+    }
+
+    /* Bottom Navigation */
+    .nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(28, 32, 38, 0.96);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+      z-index: 50;
+    }
+    .nav button {
+      background: none; border: none; color: var(--muted);
+      font-size: 11px; display: flex; flex-direction: column;
+      align-items: center; gap: 3px; cursor: pointer; padding: 4px 8px;
+    }
+    .nav button.active { color: var(--accent); font-weight: 600; }
+    .nav-icon { font-size: 18px; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      display: none; align-items: flex-end; justify-content: center; z-index: 100;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--card);
+      width: 100%; max-width: 640px;
+      border-radius: 18px 18px 0 0;
+      padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+      max-height: 90vh; overflow-y: auto;
+      border-top: 1px solid var(--border);
+    }
+    .modal h3 { margin: 0 0 14px; font-size: 17px; }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+    .field input, .field textarea, .field select {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); border-radius: 10px; padding: 11px 12px;
+      font-size: 15px; font-family: inherit;
+    }
+    .field textarea { min-height: 90px; resize: vertical; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .section-head h2 { margin: 0; font-size: 17px; }
+    .icon-btn { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px; }
+  </style>
+</head>
+<body>
+
+<div class="container" id="app"></div>
+
+<nav class="nav" id="bottomNav" style="display:none;">
+  <button onclick="switchTab('maintenance')" id="tab-maintenance" class="active"><span class="nav-icon">⏱</span>ТО и сроки</button>
+  <button onclick="switchTab('shopping')" id="tab-shopping"><span class="nav-icon">🛒</span>Купить</button>
+  <button onclick="switchTab('logbook')" id="tab-logbook"><span class="nav-icon">📖</span>Журнал</button>
+  <button onclick="switchTab('notes')" id="tab-notes"><span class="nav-icon">📌</span>Заметки</button>
+  <button onclick="switchTab('data')" id="tab-data"><span class="nav-icon">💾</span>Файл</button>
+</nav>
+
+<div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this) closeModal()">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<input type="file" id="fileInput" accept=".json,application/json" style="display:none" onchange="handleFileUpload(event)" />
+
+<script>
+  const STORAGE_KEY = 'garage_car_data_v1';
+  let carData = null;
+  let currentTab = 'maintenance';
+
+  function init() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        carData = JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    render();
+  }
+
+  function saveData() {
+    if (carData) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(carData));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    render();
+  }
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+    const activeBtn = document.getElementById('tab-' + tab);
+    if (activeBtn) activeBtn.classList.add('active');
+    render();
+  }
+
+  function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        if (!parsed.car_info) throw new Error('Неверный формат JSON');
+        carData = parsed;
+        saveData();
+      } catch (err) {
+        alert('Ошибка чтения JSON: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  function openPasteJsonModal() {
+    openModal(`
+      <h3>Вставить JSON машины</h3>
+      <div class="field">
+        <label>Вставь содержимое файла .json целиком</label>
+        <textarea id="pasteJsonArea" placeholder='{"car_info": ...}'></textarea>
+      </div>
+      <button class="btn" onclick="importPastedJson()">Загрузить в гараж</button>
+    `);
+  }
+
+  function importPastedJson() {
+    try {
+      const raw = document.getElementById('pasteJsonArea').value.trim();
+      const parsed = JSON.parse(raw);
+      if (!parsed.car_info) throw new Error('Отсутствует блок car_info');
+      carData = parsed;
+      closeModal();
+      saveData();
+    } catch (err) {
+      alert('Ошибка в JSON: ' + err.message);
+    }
+  }
+
+  function createEmptyCar() {
+    carData = {
+      car_info: {
+        title: "Мой автомобиль",
+        year: new Date().getFullYear(),
+        build_date: "",
+        engine: "",
+        engine_code: "",
+        paint_code: "",
+        wheels: "",
+        current_mileage: 0
+      },
+      maintenance: [],
+      shopping_list: [],
+      logbook: [],
+      notes: []
+    };
+    saveData();
+    editCarInfoModal();
+  }
+
+  function render() {
+    const app = document.getElementById('app');
+    const nav = document.getElementById('bottomNav');
+
+    if (!carData) {
+      nav.style.display = 'none';
+      app.innerHTML = `
+        <div class="empty-screen">
+          <div class="empty-icon">🚘</div>
+          <h1 style="margin:0; font-size:22px;">Личный гараж</h1>
+          <p style="color:var(--muted); margin:0; max-width:320px; font-size:14px;">
+            Загрузи JSON-файл своей машины, чтобы открыть регламент ТО, запчасти и бортжурнал. Все данные хранятся только на твоём устройстве.
+          </p>
+          <div style="width:100%; max-width:320px; display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+            <button class="btn" onclick="document.getElementById('fileInput').click()">📂 Загрузить файл .json</button>
+            <button class="btn btn-secondary" onclick="openPasteJsonModal()">📋 Вставить JSON текстом</button>
+            <button class="btn btn-secondary" onclick="createEmptyCar()">➕ Создать пустой профиль</button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    nav.style.display = 'flex';
+    const c = carData.car_info;
+
+    let html = `
+      <div class="car-header">
+        <div class="car-title-row">
+          <div>
+            <h1 class="car-title">${esc(c.title)} ${c.year ? '(' + esc(c.year) + ')' : ''}</h1>
+            <div class="car-sub">${esc(c.engine || '')} ${c.engine_code ? '• ' + esc(c.engine_code) : ''}</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="editCarInfoModal()">✏️ ТТХ</button>
+        </div>
+
+        <div class="odometer-box" onclick="updateMileageModal()" style="cursor:pointer;">
+          <div>
+            <div class="odometer-label">Текущий пробег (нажми для ввода)</div>
+            <div class="odometer-value">${Number(c.current_mileage || 0).toLocaleString('ru-RU')} км</div>
+          </div>
+          <span style="font-size:20px;">🔄</span>
+        </div>
+
+        <div class="specs-grid">
+          ${c.build_date ? `<div class="spec-item"><span>Дата выпуска</span>${esc(c.build_date)}</div>` : ''}
+          ${c.paint_code ? `<div class="spec-item"><span>Код краски</span>${esc(c.paint_code)}</div>` : ''}
+          ${c.wheels ? `<div class="spec-item" style="grid-column: span 2;"><span>Колёса / резина</span>${esc(c.wheels)}</div>` : ''}
+        </div>
+      </div>
+    `;
+
+    if (currentTab === 'maintenance') html += renderMaintenance();
+    if (currentTab === 'shopping') html += renderShopping();
+    if (currentTab === 'logbook') html += renderLogbook();
+    if (currentTab === 'notes') html += renderNotes();
+    if (currentTab === 'data') html += renderDataTab();
+
+    app.innerHTML = html;
+  }
+
+  function renderMaintenance() {
+    const cur = Number(carData.car_info.current_mileage || 0);
+    const list = carData.maintenance || [];
+    let out = `
+      <div class="section-head">
+        <h2>Регламент и замены</h2>
+        <button class="btn btn-sm" onclick="openMaintenanceModal()">+ Добавить</button>
+      </div>
+    `;
+    if (!list.length) return out + `<p style="color:var(--muted); text-align:center;">Пока нет пунктов ТО</p>`;
+
+    list.forEach((m, idx) => {
+      if (m.type === 'time') {
+        const lastDate = new Date(m.last_date);
+        const nextDate = new Date(lastDate);
+        nextDate.setMonth(nextDate.getMonth() + Number(m.interval_months || 6));
+        const daysLeft = Math.ceil((nextDate - new Date()) / (1000 * 60 * 60 * 24));
+        let statusClass = 'ok', statusText = `Через ${daysLeft} дн.`;
+        if (daysLeft <= 0) { statusClass = 'danger'; statusText = `Просрочено на ${Math.abs(daysLeft)} дн.`; }
+        else if (daysLeft <= 20) { statusClass = 'warn'; }
+
+        out += `
+          <div class="card">
+            <div class="card-top">
+              <div>
+                <div class="card-title">${esc(m.name)}</div>
+                <div class="card-meta">Сделано: ${esc(m.last_date)} • След: ${nextDate.toISOString().slice(0,10)}</div>
+              </div>
+              <span class="badge ${statusClass}">${statusText}</span>
+            </div>
+            ${m.note ? `<div class="card-meta" style="margin-top:8px; color:#cbd5e1;">${esc(m.note)}</div>` : ''}
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button class="btn btn-secondary btn-sm" onclick="resetMaintenance(${idx})">✅ Сделано сегодня</button>
+              <button class="btn btn-secondary btn-sm" onclick="openMaintenanceModal(${idx})">✏️</button>
+            </div>
+          </div>
+        `;
+      } else {
+        const target = Number(m.last_mileage) + Number(m.interval_km);
+        const left = target - cur;
+        const pct = Math.min(100, Math.max(0, ((cur - m.last_mileage) / m.interval_km) * 100));
+        let statusClass = 'ok', color = 'var(--green)', statusText = `Осталось ${left.toLocaleString('ru-RU')} км`;
+        if (left <= 0) {
+          statusClass = 'danger'; color = 'var(--red)';
+          statusText = `Перепробег ${Math.abs(left).toLocaleString('ru-RU')} км`;
+        } else if (left <= 1000) {
+          statusClass = 'warn'; color = 'var(--yellow)';
+        }
+
+        out += `
+          <div class="card">
+            <div class="card-top">
+              <div>
+                <div class="card-title">${esc(m.name)}</div>
+                <div class="card-meta">Было: ${Number(m.last_mileage).toLocaleString('ru-RU')} км → След: ${target.toLocaleString('ru-RU')} км</div>
+              </div>
+              <span class="badge ${statusClass}">${statusText}</span>
+            </div>
+            <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%; background:${color};"></div></div>
+            ${m.note ? `<div class="card-meta" style="color:#cbd5e1;">${esc(m.note)}</div>` : ''}
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button class="btn btn-secondary btn-sm" onclick="resetMaintenance(${idx})">✅ Заменил сейчас</button>
+              <button class="btn btn-secondary btn-sm" onclick="openMaintenanceModal(${idx})">✏️</button>
+            </div>
+          </div>
+        `;
+      }
+    });
+    return out;
+  }
+
+  function renderShopping() {
+    const list = carData.shopping_list || [];
+    let out = `
+      <div class="section-head">
+        <h2>Купить / Запчасти</h2>
+        <button class="btn btn-sm" onclick="openShoppingModal()">+ Добавить</button>
+      </div>
+    `;
+    if (!list.length) return out + `<p style="color:var(--muted); text-align:center;">Список покупок пуст</p>`;
+
+    list.forEach((item, idx) => {
+      out += `
+        <div class="card ${item.bought ? 'bought' : ''}">
+          <div class="shop-row">
+            <input type="checkbox" class="shop-check" ${item.bought ? 'checked' : ''} onchange="toggleShop(${idx})" />
+            <div style="flex:1;">
+              <div class="card-top">
+                <div class="card-title">${esc(item.name)}</div>
+                ${item.category ? `<span class="badge">${esc(item.category)}</span>` : ''}
+              </div>
+              ${item.price ? `<div class="card-meta">Бюджет: ${esc(item.price)}</div>` : ''}
+            </div>
+            <button class="icon-btn" onclick="deleteItem('shopping_list', ${idx})">🗑</button>
+          </div>
+        </div>
+      `;
+    });
+    return out;
+  }
+
+  function renderLogbook() {
+    const list = carData.logbook || [];
+    let out = `
+      <div class="section-head">
+        <h2>Бортжурнал и изменения</h2>
+        <button class="btn btn-sm" onclick="openLogbookModal()">+ Запись</button>
+      </div>
+    `;
+    if (!list.length) return out + `<p style="color:var(--muted); text-align:center;">Записей пока нет</p>`;
+
+    list.forEach((item, idx) => {
+      out += `
+        <div class="card">
+          <div class="card-top">
+            <div>
+              <div class="card-title">${esc(item.title)}</div>
+              <div class="card-meta">${esc(item.date || '')} ${item.mileage ? '• ' + Number(item.mileage).toLocaleString('ru-RU') + ' км' : ''}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              ${item.category ? `<span class="badge">${esc(item.category)}</span>` : ''}
+              <button class="icon-btn" onclick="deleteItem('logbook', ${idx})">🗑</button>
+            </div>
+          </div>
+          ${item.details ? `<div class="note-text">${esc(item.details)}</div>` : ''}
+        </div>
+      `;
+    });
+    return out;
+  }
+
+  function renderNotes() {
+    const list = carData.notes || [];
+    let out = `
+      <div class="section-head">
+        <h2>Шпаргалка и нюансы</h2>
+        <button class="btn btn-sm" onclick="openNoteModal()">+ Заметка</button>
+      </div>
+    `;
+    if (!list.length) return out + `<p style="color:var(--muted); text-align:center;">Заметок пока нет</p>`;
+
+    list.forEach((n, idx) => {
+      out += `
+        <div class="card">
+          <div class="card-top">
+            <div class="card-title">${esc(n.title)}</div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              ${n.tag ? `<span class="badge">${esc(n.tag)}</span>` : ''}
+              <button class="icon-btn" onclick="openNoteModal(${idx})">✏️</button>
+              <button class="icon-btn" onclick="deleteItem('notes', ${idx})">🗑</button>
+            </div>
+          </div>
+          <div class="note-text">${esc(n.text)}</div>
+        </div>
+      `;
+    });
+    return out;
+  }
+
+  function renderDataTab() {
+    return `
+      <div class="section-head"><h2>Управление JSON-файлом</h2></div>
+      <div class="card" style="display:flex; flex-direction:column; gap:10px;">
+        <p style="margin:0; font-size:13.5px; color:var(--muted);">
+          После внесения изменений на телефоне скачай обновлённый JSON-файл или скопируй его в избранное, чтобы не потерять данные.
+        </p>
+        <button class="btn" onclick="downloadJson()">⬇️ Скачать обновлённый .json</button>
+        <button class="btn btn-secondary" onclick="copyJson()">📋 Скопировать JSON в буфер</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">📂 Загрузить другой .json</button>
+        <button class="btn btn-danger" onclick="clearGarage()">🗑 Очистить гараж (сброс)</button>
+      </div>
+    `;
+  }
+
+  /* Actions & Modals */
+  function updateMileageModal() {
+    openModal(`
+      <h3>Обновить пробег</h3>
+      <div class="field">
+        <label>Текущий пробег (км)</label>
+        <input type="number" id="newMileageInput" value="${carData.car_info.current_mileage || 0}" />
+      </div>
+      <button class="btn" onclick="saveNewMileage()">Сохранить пробег</button>
+    `);
+    setTimeout(() => document.getElementById('newMileageInput').focus(), 100);
+  }
+
+  function saveNewMileage() {
+    carData.car_info.current_mileage = Number(document.getElementById('newMileageInput').value || 0);
+    closeModal();
+    saveData();
+  }
+
+  function editCarInfoModal() {
+    const c = carData.car_info;
+    openModal(`
+      <h3>Характеристики авто</h3>
+      <div class="field"><label>Модель</label><input id="ci_title" value="${esc(c.title)}" /></div>
+      <div class="row-2">
+        <div class="field"><label>Год</label><input type="number" id="ci_year" value="${esc(c.year)}" /></div>
+        <div class="field"><label>Дата выпуска</label><input id="ci_build" value="${esc(c.build_date || '')}" /></div>
+      </div>
+      <div class="field"><label>Двигатель</label><input id="ci_engine" value="${esc(c.engine || '')}" /></div>
+      <div class="row-2">
+        <div class="field"><label>Код мотора / ЭБУ</label><input id="ci_code" value="${esc(c.engine_code || '')}" /></div>
+        <div class="field"><label>Код краски</label><input id="ci_paint" value="${esc(c.paint_code || '')}" /></div>
+      </div>
+      <div class="field"><label>Колёса / резина</label><input id="ci_wheels" value="${esc(c.wheels || '')}" /></div>
+      <button class="btn" onclick="saveCarInfo()">Сохранить</button>
+    `);
+  }
+
+  function saveCarInfo() {
+    const c = carData.car_info;
+    c.title = document.getElementById('ci_title').value;
+    c.year = document.getElementById('ci_year').value;
+    c.build_date = document.getElementById('ci_build').value;
+    c.engine = document.getElementById('ci_engine').value;
+    c.engine_code = document.getElementById('ci_code').value;
+    c.paint_code = document.getElementById('ci_paint').value;
+    c.wheels = document.getElementById('ci_wheels').value;
+    closeModal();
+    saveData();
+  }
+
+  function openMaintenanceModal(idx = null) {
+    const item = idx !== null ? carData.maintenance[idx] : { type: 'mileage', name: '', last_mileage: carData.car_info.current_mileage, interval_km: 7500, last_date: new Date().toISOString().slice(0,10), interval_months: 6, note: '' };
+    openModal(`
+      <h3>${idx !== null ? 'Редактировать ТО' : 'Новый пункт ТО'}</h3>
+      <div class="field"><label>Название (например, Замена масла)</label><input id="m_name" value="${esc(item.name)}" /></div>
+      <div class="field">
+        <label>Тип интервала</label>
+        <select id="m_type" onchange="toggleMaintFields()">
+          <option value="mileage" ${item.type !== 'time' ? 'selected' : ''}>По пробегу (км)</option>
+          <option value="time" ${item.type === 'time' ? 'selected' : ''}>По времени (месяцы)</option>
+        </select>
+      </div>
+      <div id="m_km_fields" style="display:${item.type === 'time' ? 'none' : 'block'}">
+        <div class="row-2">
+          <div class="field"><label>Пробег замены</label><input type="number" id="m_last_km" value="${item.last_mileage || 0}" /></div>
+          <div class="field"><label>Интервал (км)</label><input type="number" id="m_int_km" value="${item.interval_km || 7500}" /></div>
+        </div>
+      </div>
+      <div id="m_time_fields" style="display:${item.type === 'time' ? 'block' : 'none'}">
+        <div class="row-2">
+          <div class="field"><label>Дата замены</label><input type="date" id="m_last_date" value="${item.last_date || ''}" /></div>
+          <div class="field"><label>Интервал (мес.)</label><input type="number" id="m_int_mo" value="${item.interval_months || 6}" /></div>
+        </div>
+      </div>
+      <div class="field"><label>Примечание / расходники</label><input id="m_note" value="${esc(item.note || '')}" /></div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn" onclick="saveMaintenance(${idx})">Сохранить</button>
+        ${idx !== null ? `<button class="btn btn-danger" style="width:auto;" onclick="deleteItem('maintenance', ${idx}); closeModal();">🗑</button>` : ''}
+      </div>
+    `);
+  }
+
+  function toggleMaintFields() {
+    const isTime = document.getElementById('m_type').value === 'time';
+    document.getElementById('m_km_fields').style.display = isTime ? 'none' : 'block';
+    document.getElementById('m_time_fields').style.display = isTime ? 'block' : 'none';
+  }
+
+  function saveMaintenance(idx) {
+    const obj = {
+      id: idx !== null ? carData.maintenance[idx].id : 'm_' + Date.now(),
+      name: document.getElementById('m_name').value,
+      type: document.getElementById('m_type').value,
+      last_mileage: Number(document.getElementById('m_last_km').value),
+      interval_km: Number(document.getElementById('m_int_km').value),
+      last_date: document.getElementById('m_last_date').value,
+      interval_months: Number(document.getElementById('m_int_mo').value),
+      note: document.getElementById('m_note').value
+    };
+    if (idx !== null) carData.maintenance[idx] = obj;
+    else carData.maintenance.push(obj);
+    closeModal();
+    saveData();
+  }
+
+  function resetMaintenance(idx) {
+    const m = carData.maintenance[idx];
+    const today = new Date().toISOString().slice(0, 10);
+    if (m.type === 'time') {
+      m.last_date = today;
+    } else {
+      m.last_mileage = Number(carData.car_info.current_mileage || 0);
+    }
+    carData.logbook.unshift({
+      id: 'l_' + Date.now(),
+      date: today,
+      mileage: carData.car_info.current_mileage,
+      category: 'ТО',
+      title: m.name,
+      details: m.note || 'Плановая замена по регламенту'
+    });
+    saveData();
+  }
+
+  function openShoppingModal() {
+    openModal(`
+      <h3>Добавить в список покупок</h3>
+      <div class="field"><label>Название детали / жидкости</label><input id="s_name" placeholder="Например: Фильтр масляный Mann" /></div>
+      <div class="row-2">
+        <div class="field"><label>Категория</label><input id="s_cat" placeholder="Двигатель / Ходовая" /></div>
+        <div class="field"><label>Цена / ориентир</label><input id="s_price" placeholder="1500 ₽" /></div>
+      </div>
+      <button class="btn" onclick="saveShopping()">Добавить</button>
+    `);
+  }
+
+  function saveShopping() {
+    carData.shopping_list.unshift({
+      id: 's_' + Date.now(),
+      name: document.getElementById('s_name').value,
+      category: document.getElementById('s_cat').value,
+      price: document.getElementById('s_price').value,
+      bought: false
+    });
+    closeModal();
+    saveData();
+  }
+
+  function toggleShop(idx) {
+    carData.shopping_list[idx].bought = !carData.shopping_list[idx].bought;
+    saveData();
+  }
+
+  function openLogbookModal() {
+    openModal(`
+      <h3>Новая запись в бортжурнал</h3>
+      <div class="field"><label>Что сделано / заменено</label><input id="l_title" placeholder="Замена датчика коленвала" /></div>
+      <div class="row-2">
+        <div class="field"><label>Дата</label><input type="date" id="l_date" value="${new Date().toISOString().slice(0,10)}" /></div>
+        <div class="field"><label>Пробег (км)</label><input type="number" id="l_km" value="${carData.car_info.current_mileage || ''}" /></div>
+      </div>
+      <div class="field"><label>Раздел</label><input id="l_cat" placeholder="Двигатель / Ходовая / Салон" /></div>
+      <div class="field"><label>Подробности, артикулы, цена</label><textarea id="l_det"></textarea></div>
+      <button class="btn" onclick="saveLogbook()">Добавить запись</button>
+    `);
+  }
+
+  function saveLogbook() {
+    carData.logbook.unshift({
+      id: 'l_' + Date.now(),
+      title: document.getElementById('l_title').value,
+      date: document.getElementById('l_date').value,
+      mileage: document.getElementById('l_km').value ? Number(document.getElementById('l_km').value) : null,
+      category: document.getElementById('l_cat').value,
+      details: document.getElementById('l_det').value
+    });
+    closeModal();
+    saveData();
+  }
+
+  function openNoteModal(idx = null) {
+    const n = idx !== null ? carData.notes[idx] : { title: '', tag: '', text: '' };
+    openModal(`
+      <h3>${idx !== null ? 'Редактировать заметку' : 'Новая заметка'}</h3>
+      <div class="field"><label>Заголовок</label><input id="n_title" value="${esc(n.title)}" /></div>
+      <div class="field"><label>Тег / Узел</label><input id="n_tag" value="${esc(n.tag || '')}" placeholder="Ошибки / Двигатель / Электрика" /></div>
+      <div class="field"><label>Текст заметки</label><textarea id="n_text">${esc(n.text)}</textarea></div>
+      <button class="btn" onclick="saveNote(${idx})">Сохранить</button>
+    `);
+  }
+
+  function saveNote(idx) {
+    const obj = {
+      id: idx !== null ? carData.notes[idx].id : 'n_' + Date.now(),
+      title: document.getElementById('n_title').value,
+      tag: document.getElementById('n_tag').value,
+      text: document.getElementById('n_text').value
+    };
+    if (idx !== null) carData.notes[idx] = obj;
+    else carData.notes.push(obj);
+    closeModal();
+    saveData();
+  }
+
+  function deleteItem(key, idx) {
+    if (!confirm('Удалить запись?')) return;
+    carData[key].splice(idx, 1);
+    saveData();
+  }
+
+  function downloadJson() {
+    const blob = new Blob([JSON.stringify(carData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const slug = (carData.car_info.title || 'car').toLowerCase().replace(/[^a-z0-9а-яё]+/gi, '_');
+    a.href = url;
+    a.download = `${slug}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function copyJson() {
+    navigator.clipboard.writeText(JSON.stringify(carData, null, 2))
+      .then(() => alert('JSON скопирован в буфер обмена!'))
+      .catch(() => alert('Не удалось скопировать'));
+  }
+
+  function clearGarage() {
+    if (!confirm('Очистить данные из браузера? Убедись, что ты скачал свежий JSON-файл.')) return;
+    carData = null;
+    saveData();
+  }
+
+  function openModal(html) {
+    document.getElementById('modalContent').innerHTML = html;
+    document.getElementById('modalBackdrop').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modalBackdrop').classList.remove('open');
+  }
+
+  function esc(str) {
+    return String(str ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  }
+
+  init();
+</script>
+</body>
+</html>
