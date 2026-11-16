@@ -20,7 +20,6 @@
       --accent: #3b82f6;
       --accent-soft: rgba(59, 130, 246, 0.15);
       --green: #22c55e;
-      --yellow: #eab308;
       --red: #ef4444;
       --radius: 14px;
     }
@@ -89,18 +88,6 @@
     .car-title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
     .car-title { font-size: 20px; font-weight: 700; margin: 0; }
     .car-sub { color: var(--muted); font-size: 13px; margin-top: 3px; }
-    .odometer-box {
-      margin-top: 14px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 11px;
-      padding: 10px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .odometer-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
-    .odometer-value { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--accent); }
 
     .specs-grid {
       display: grid;
@@ -125,28 +112,17 @@
     }
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .card-title { font-weight: 600; font-size: 15px; margin: 0; }
-    .card-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .card-meta { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
     .badge {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 9px;
+      border-radius: 7px;
       background: var(--accent-soft);
       color: var(--accent);
       white-space: nowrap;
+      font-variant-numeric: tabular-nums;
     }
-    .badge.ok { background: rgba(34,197,94,0.15); color: var(--green); }
-    .badge.warn { background: rgba(234,179,8,0.15); color: var(--yellow); }
-    .badge.danger { background: rgba(239,68,68,0.15); color: var(--red); }
-
-    .progress-wrap {
-      height: 6px;
-      background: var(--bg);
-      border-radius: 99px;
-      overflow: hidden;
-      margin: 10px 0 6px;
-    }
-    .progress-bar { height: 100%; border-radius: 99px; transition: width 0.3s; }
 
     .shop-row { display: flex; align-items: flex-start; gap: 12px; }
     .shop-check {
@@ -219,7 +195,7 @@
 </div>
 
 <nav class="nav" id="bottomNav" style="display:none;">
-  <button onclick="switchTab('maintenance')" id="tab-maintenance" class="active"><span class="nav-icon">⏱</span>ТО и сроки</button>
+  <button onclick="switchTab('maintenance')" id="tab-maintenance" class="active"><span class="nav-icon">⏱</span>ТО и замены</button>
   <button onclick="switchTab('shopping')" id="tab-shopping"><span class="nav-icon">🛒</span>Купить</button>
   <button onclick="switchTab('logbook')" id="tab-logbook"><span class="nav-icon">📖</span>Журнал</button>
   <button onclick="switchTab('notes')" id="tab-notes"><span class="nav-icon">📌</span>Заметки</button>
@@ -233,9 +209,8 @@
 <input type="file" id="fileInput" accept=".json,application/json" style="display:none" onchange="handleFileUpload(event)" />
 
 <script>
-  /* --- PWA & OFFLINE SETUP (Single-File) --- */
+  /* --- PWA & OFFLINE SETUP --- */
   (function setupPWA() {
-    // 1. Встроенная SVG-иконка 512x512
     const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
       <rect width="512" height="512" rx="112" fill="#1c2026"/>
       <circle cx="256" cy="256" r="180" fill="#3b82f6" fill-opacity="0.18"/>
@@ -244,7 +219,6 @@
     const iconDataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgIcon)));
     document.getElementById('apple-icon').href = iconDataUrl;
 
-    // 2. Динамический Web Manifest с абсолютным start_url
     const pageUrl = location.href.split('#')[0].split('?')[0];
     const manifest = {
       name: "Гараж — Бортовой журнал",
@@ -262,15 +236,13 @@
     const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
     document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
 
-    // 3. Офлайн-кэш через Cache API (сохраняет саму страницу локально при каждом открытии онлайн)
-    const CACHE_NAME = 'garage-offline-shell-v1';
+    const CACHE_NAME = 'garage-offline-shell-v2';
     if ('caches' in window && navigator.onLine) {
       caches.open(CACHE_NAME).then(cache => {
         cache.add(pageUrl).catch(() => {});
       });
     }
 
-    // 4. Inline Service Worker для работы без интернета (работает на HTTPS / GitHub Pages)
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
       const swCode = `
         const CACHE = '${CACHE_NAME}';
@@ -298,11 +270,9 @@
         });
       `;
       const swBlob = new Blob([swCode], { type: 'application/javascript' });
-      const swUrl = URL.createObjectURL(swBlob);
-      navigator.serviceWorker.register(swUrl).catch(() => {});
+      navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
     }
 
-    // 5. Кнопка прямой установки для Android Chrome
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
@@ -396,8 +366,7 @@
         engine: "",
         engine_code: "",
         paint_code: "",
-        wheels: "",
-        current_mileage: 0
+        wheels: ""
       },
       maintenance: [],
       shopping_list: [],
@@ -444,14 +413,6 @@
           <button class="btn btn-secondary btn-sm" onclick="editCarInfoModal()">✏️ ТТХ</button>
         </div>
 
-        <div class="odometer-box" onclick="updateMileageModal()" style="cursor:pointer;">
-          <div>
-            <div class="odometer-label">Текущий пробег (нажми для ввода)</div>
-            <div class="odometer-value">${Number(c.current_mileage || 0).toLocaleString('ru-RU')} км</div>
-          </div>
-          <span style="font-size:20px;">🔄</span>
-        </div>
-
         <div class="specs-grid">
           ${c.build_date ? `<div class="spec-item"><span>Дата выпуска</span>${esc(c.build_date)}</div>` : ''}
           ${c.paint_code ? `<div class="spec-item"><span>Код краски</span>${esc(c.paint_code)}</div>` : ''}
@@ -470,7 +431,6 @@
   }
 
   function renderMaintenance() {
-    const cur = Number(carData.car_info.current_mileage || 0);
     const list = carData.maintenance || [];
     let out = `
       <div class="section-head">
@@ -485,52 +445,39 @@
         const lastDate = new Date(m.last_date);
         const nextDate = new Date(lastDate);
         nextDate.setMonth(nextDate.getMonth() + Number(m.interval_months || 6));
-        const daysLeft = Math.ceil((nextDate - new Date()) / (1000 * 60 * 60 * 24));
-        let statusClass = 'ok', statusText = `Через ${daysLeft} дн.`;
-        if (daysLeft <= 0) { statusClass = 'danger'; statusText = `Просрочено на ${Math.abs(daysLeft)} дн.`; }
-        else if (daysLeft <= 20) { statusClass = 'warn'; }
+        const nextStr = nextDate.toISOString().slice(0, 10);
 
         out += `
           <div class="card">
             <div class="card-top">
               <div>
                 <div class="card-title">${esc(m.name)}</div>
-                <div class="card-meta">Сделано: ${esc(m.last_date)} • След: ${nextDate.toISOString().slice(0,10)}</div>
+                <div class="card-meta">Сделано: ${esc(m.last_date)} • Интервал: ${Number(m.interval_months)} мес.</div>
               </div>
-              <span class="badge ${statusClass}">${statusText}</span>
+              <span class="badge">След: ${nextStr}</span>
             </div>
             ${m.note ? `<div class="card-meta" style="margin-top:8px; color:#cbd5e1;">${esc(m.note)}</div>` : ''}
             <div style="display:flex; gap:8px; margin-top:10px;">
-              <button class="btn btn-secondary btn-sm" onclick="resetMaintenance(${idx})">✅ Сделано сегодня</button>
+              <button class="btn btn-secondary btn-sm" onclick="openReplaceModal(${idx})">✅ Заменил</button>
               <button class="btn btn-secondary btn-sm" onclick="openMaintenanceModal(${idx})">✏️</button>
             </div>
           </div>
         `;
       } else {
         const target = Number(m.last_mileage) + Number(m.interval_km);
-        const left = target - cur;
-        const pct = Math.min(100, Math.max(0, ((cur - m.last_mileage) / m.interval_km) * 100));
-        let statusClass = 'ok', color = 'var(--green)', statusText = `Осталось ${left.toLocaleString('ru-RU')} км`;
-        if (left <= 0) {
-          statusClass = 'danger'; color = 'var(--red)';
-          statusText = `Перепробег ${Math.abs(left).toLocaleString('ru-RU')} км`;
-        } else if (left <= 1000) {
-          statusClass = 'warn'; color = 'var(--yellow)';
-        }
 
         out += `
           <div class="card">
             <div class="card-top">
               <div>
                 <div class="card-title">${esc(m.name)}</div>
-                <div class="card-meta">Было: ${Number(m.last_mileage).toLocaleString('ru-RU')} км → След: ${target.toLocaleString('ru-RU')} км</div>
+                <div class="card-meta">Было: ${Number(m.last_mileage).toLocaleString('ru-RU')} км • Интервал: +${Number(m.interval_km).toLocaleString('ru-RU')} км</div>
               </div>
-              <span class="badge ${statusClass}">${statusText}</span>
+              <span class="badge">На ${target.toLocaleString('ru-RU')} км</span>
             </div>
-            <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%; background:${color};"></div></div>
-            ${m.note ? `<div class="card-meta" style="color:#cbd5e1;">${esc(m.note)}</div>` : ''}
+            ${m.note ? `<div class="card-meta" style="margin-top:8px; color:#cbd5e1;">${esc(m.note)}</div>` : ''}
             <div style="display:flex; gap:8px; margin-top:10px;">
-              <button class="btn btn-secondary btn-sm" onclick="resetMaintenance(${idx})">✅ Заменил сейчас</button>
+              <button class="btn btn-secondary btn-sm" onclick="openReplaceModal(${idx})">✅ Заменил</button>
               <button class="btn btn-secondary btn-sm" onclick="openMaintenanceModal(${idx})">✏️</button>
             </div>
           </div>
@@ -633,7 +580,7 @@
       <div class="section-head"><h2>Управление JSON-файлом</h2></div>
       <div class="card" style="display:flex; flex-direction:column; gap:10px;">
         <p style="margin:0; font-size:13.5px; color:var(--muted);">
-          После внесения изменений на телефоне скачай обновлённый JSON-файл или скопируй его в избранное, чтобы не потерять данные.
+          После внесения изменений скачай обновлённый JSON-файл или скопируй его в избранное, чтобы не потерять данные.
         </p>
         <button class="btn" onclick="downloadJson()">⬇️ Скачать обновлённый .json</button>
         <button class="btn btn-secondary" onclick="copyJson()">📋 Скопировать JSON в буфер</button>
@@ -643,24 +590,7 @@
     `;
   }
 
-  function updateMileageModal() {
-    openModal(`
-      <h3>Обновить пробег</h3>
-      <div class="field">
-        <label>Текущий пробег (км)</label>
-        <input type="number" id="newMileageInput" value="${carData.car_info.current_mileage || 0}" />
-      </div>
-      <button class="btn" onclick="saveNewMileage()">Сохранить пробег</button>
-    `);
-    setTimeout(() => document.getElementById('newMileageInput').focus(), 100);
-  }
-
-  function saveNewMileage() {
-    carData.car_info.current_mileage = Number(document.getElementById('newMileageInput').value || 0);
-    closeModal();
-    saveData();
-  }
-
+  /* Modals */
   function editCarInfoModal() {
     const c = carData.car_info;
     openModal(`
@@ -693,8 +623,53 @@
     saveData();
   }
 
+  function openReplaceModal(idx) {
+    const m = carData.maintenance[idx];
+    const today = new Date().toISOString().slice(0, 10);
+    if (m.type === 'time') {
+      openModal(`
+        <h3>Зафиксировать замену: ${esc(m.name)}</h3>
+        <div class="field"><label>Дата выполнения</label><input type="date" id="rep_date" value="${today}" /></div>
+        <div class="field"><label>Пробег (необязательно, для журнала)</label><input type="number" id="rep_km" placeholder="Например: 696200" /></div>
+        <button class="btn" onclick="confirmReplace(${idx})">Сохранить замену</button>
+      `);
+    } else {
+      const expected = Number(m.last_mileage) + Number(m.interval_km);
+      openModal(`
+        <h3>Зафиксировать замену: ${esc(m.name)}</h3>
+        <div class="field"><label>Пробег при замене (км)</label><input type="number" id="rep_km" value="${expected}" /></div>
+        <div class="field"><label>Дата</label><input type="date" id="rep_date" value="${today}" /></div>
+        <button class="btn" onclick="confirmReplace(${idx})">Сохранить замену</button>
+      `);
+      setTimeout(() => document.getElementById('rep_km').focus(), 100);
+    }
+  }
+
+  function confirmReplace(idx) {
+    const m = carData.maintenance[idx];
+    const dateVal = document.getElementById('rep_date').value || new Date().toISOString().slice(0, 10);
+    const kmVal = document.getElementById('rep_km').value;
+
+    if (m.type === 'time') {
+      m.last_date = dateVal;
+    } else {
+      m.last_mileage = Number(kmVal || m.last_mileage);
+    }
+
+    carData.logbook.unshift({
+      id: 'l_' + Date.now(),
+      date: dateVal,
+      mileage: kmVal ? Number(kmVal) : null,
+      category: 'ТО',
+      title: m.name,
+      details: m.note || 'Плановая замена'
+    });
+    closeModal();
+    saveData();
+  }
+
   function openMaintenanceModal(idx = null) {
-    const item = idx !== null ? carData.maintenance[idx] : { type: 'mileage', name: '', last_mileage: carData.car_info.current_mileage, interval_km: 7500, last_date: new Date().toISOString().slice(0,10), interval_months: 6, note: '' };
+    const item = idx !== null ? carData.maintenance[idx] : { type: 'mileage', name: '', last_mileage: 0, interval_km: 7500, last_date: new Date().toISOString().slice(0,10), interval_months: 6, note: '' };
     openModal(`
       <h3>${idx !== null ? 'Редактировать ТО' : 'Новый пункт ТО'}</h3>
       <div class="field"><label>Название (например, Замена масла)</label><input id="m_name" value="${esc(item.name)}" /></div>
@@ -748,22 +723,6 @@
     saveData();
   }
 
-  function resetMaintenance(idx) {
-    const m = carData.maintenance[idx];
-    const today = new Date().toISOString().slice(0, 10);
-    if (m.type === 'time') m.last_date = today;
-    else m.last_mileage = Number(carData.car_info.current_mileage || 0);
-    carData.logbook.unshift({
-      id: 'l_' + Date.now(),
-      date: today,
-      mileage: carData.car_info.current_mileage,
-      category: 'ТО',
-      title: m.name,
-      details: m.note || 'Плановая замена по регламенту'
-    });
-    saveData();
-  }
-
   function openShoppingModal() {
     openModal(`
       <h3>Добавить в список покупок</h3>
@@ -799,7 +758,7 @@
       <div class="field"><label>Что сделано / заменено</label><input id="l_title" placeholder="Замена датчика коленвала" /></div>
       <div class="row-2">
         <div class="field"><label>Дата</label><input type="date" id="l_date" value="${new Date().toISOString().slice(0,10)}" /></div>
-        <div class="field"><label>Пробег (км)</label><input type="number" id="l_km" value="${carData.car_info.current_mileage || ''}" /></div>
+        <div class="field"><label>Пробег (км)</label><input type="number" id="l_km" placeholder="Необязательно" /></div>
       </div>
       <div class="field"><label>Раздел</label><input id="l_cat" placeholder="Двигатель / Ходовая / Салон" /></div>
       <div class="field"><label>Подробности, артикулы, цена</label><textarea id="l_det"></textarea></div>
